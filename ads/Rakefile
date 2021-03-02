@@ -1,0 +1,37 @@
+require_relative 'config/boot'
+require_relative 'ads'
+
+namespace :db do
+  Sequel.extension :migration
+  DB = Sequel.connect(YAML.load_file("#{Sinator::ROOT}/config/database.yml")[ENV['RACK_ENV']])
+  migration_path = "#{Sinator::ROOT}/db/migrations"
+
+  desc "Prints current schema version"
+  task :version do
+    version = if DB.tables.include?(:schema_info)
+      DB[:schema_info].first[:version]
+    end || 0
+
+    puts "Schema Version: #{version}"
+  end
+
+  desc "Run migrations"
+  task :migrate, [:version] do |t, args|
+    if args[:version]
+      puts "Migrating to version #{args[:version]}"
+      Sequel::Migrator.run(DB, migration_path, target: args[:version].to_i)
+    else
+      puts "Migrating to latest"
+      Sequel::Migrator.run(DB, migration_path)
+    end
+    Rake::Task['db:version'].execute
+  end
+
+  desc "Perform rollback to specified target or full rollback as default"
+  task :rollback, :target do |t, args|
+    args.with_defaults(:target => 0)
+
+    Sequel::Migrator.run(DB, migration_path, target: args[:target].to_i)
+    Rake::Task['db:version'].execute
+  end
+end
