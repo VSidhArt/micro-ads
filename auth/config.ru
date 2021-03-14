@@ -1,3 +1,5 @@
-require_relative 'auth'
+require_relative "config/application"
 
-run Auth.router
+Auth::Application.finalize!
+
+run Auth::Web.app
