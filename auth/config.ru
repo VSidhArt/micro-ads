@@ -1,3 +1,3 @@
 require_relative 'auth'
 
-run Auth.new
+run Auth.router

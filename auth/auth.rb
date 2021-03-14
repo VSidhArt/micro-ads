@@ -1,5 +1,11 @@
+require 'hanami/router'
+
 class Auth
- def call (env)
-    [200, {"Content-Type" => "text/html; charset=utf-8"}, ["Hello World"]]
- end
+  def self.router
+    Hanami::Router.new do
+      namespace '/v1' do
+        get '/hanami', to: ->(env) { [200, {}, ['Hello from Hanami!']] }
+      end
+    end
+  end
 end
