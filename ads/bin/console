@@ -1,0 +1,8 @@
+#!/usr/bin/env ruby
+
+require_relative '../config/boot'
+require Sinator::ROOT + '/ads_app'
+require Sinator::ROOT + '/config/application'
+
+require 'irb'
+IRB.start(__FILE__)
