@@ -16,8 +16,11 @@ class CreateService
   def call
     @ad = ::Ad.new(@ad.to_h.merge(user_id: @user))
     return fail!(@ad.errors) unless @ad.valid?
-    @ad.save
 
-    # GeocodingJob.perform_later(@ad)
+    lat, lon = GeoCoder::Client.get_coords(@city)
+    @ad.lat = lat
+    @ad.lon = lon
+
+    @ad.save
   end
 end
