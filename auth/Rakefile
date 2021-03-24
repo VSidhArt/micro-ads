@@ -1,0 +1,59 @@
+require_relative 'config/application'
+require 'rom-sql'
+require 'rom/sql/rake_task'
+require "sequel/extensions/schema_dumper.rb"
+
+namespace :db do
+  task :setup do
+    Auth::Application.start(:db)
+    config = Auth::Application['db.config']
+    config.gateways[:default].use_logger(Logger.new($stdout))
+  end
+
+  task dump: :rom_configuration do
+    include Sequel::SchemaDumper
+
+    DB = Sequel.connect(ENV['DATABASE_URL'], extensions: %i[pg_timestamptz])
+    DB.extension(:schema_dumper)
+    dump = DB.dump_schema_migration
+    File.write("db/schema_dump.rb", dump)
+  end
+
+  task :migrate, [:version] => :rom_configuration do |_, args|
+    version = args[:version]
+
+    if version.nil?
+      ROM::SQL::RakeSupport.run_migrations
+      puts '<= db:migrate executed'
+    else
+      ROM::SQL::RakeSupport.run_migrations(target: version.to_i)
+      puts "<= db:migrate version=[#{version}] executed"
+    end
+
+    Rake::Task["db:dump"].invoke
+  end
+
+  task seeds: :rom_configuration do
+    Auth::Application.finalize!
+    users = [
+      {
+        name: 'Richard',
+        email: 'rich@ya.ru',
+        password: 'secret'
+      },
+      {
+        name: 'Gavrila',
+        email: 'gavr@ya.ru',
+        password: 'topsecret'
+      },
+      {
+        name: 'Bubulay',
+        email: 'bud@ya.ru',
+        password: 'toptopsecret'
+      }
+    ]
+
+    users = users.map { Auth::Transactions::Users::CreateUser.new.call(_1) }
+    users.map { Auth::Transactions::Users::CreateUserSession.new.call(user_id: _1.value!.id) }
+  end
+end
